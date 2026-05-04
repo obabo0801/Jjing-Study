@@ -1,3 +1,4 @@
+import { config } from 'dotenv';
 import readline from 'readline';
 
 const rl = readline.createInterface({
@@ -7,6 +8,8 @@ const rl = readline.createInterface({
 
 rl.on('line', async (input) => {
     const cmd = input.trim();
+    
+    config({ quiet: true });
 
     switch (cmd) {
         case 'refresh':

@@ -20,5 +20,11 @@
   "dependencies": {
     "discord.js": "^14.26.4",
     "dotenv": "^17.4.2"
+  },
+  "imports": {
+    "#base64": "./src/utils/base64.js",
+    "#file": "./src/utils/file.js",
+    "#log": "./src/utils/log.js",
+    "#time": "./src/utils/time.js"
   }
 }
