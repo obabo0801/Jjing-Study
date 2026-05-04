@@ -22,6 +22,11 @@
     "dotenv": "^17.4.2"
   },
   "imports": {
+    "#message": "./src/constants/message.js",
+
+    "#client": "./src/core/client.js",
+    "#handler": "./src/core/handler.js",
+
     "#base64": "./src/utils/base64.js",
     "#file": "./src/utils/file.js",
     "#log": "./src/utils/log.js",

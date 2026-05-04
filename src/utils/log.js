@@ -11,8 +11,8 @@ const LEVELS = Object.freeze({
 });
 
 const COLORS = Object.freeze({
-    CMD: '\x1b[0m',
-    LOAD: '\x1b[37m',
+    CMD: '\x1b[35m',
+    LOAD: '\x1b[32m',
     DEBUG: '\x1b[36m',
     INFO: '\x1b[0m',
     WARN: '\x1b[33m',
