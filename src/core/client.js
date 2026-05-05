@@ -253,7 +253,8 @@ export class JjingBot extends Client {
         log.warn(
             MESSAGES.LOGIN.RETRY_COUNT(
                 this.jjing?.delay, 
-                retry + 1, RETRY_COUNT));
+                retry + 1,
+                this.jjing?.count));
 
         setTimeout(() => {
             this.start(retry + 1);
