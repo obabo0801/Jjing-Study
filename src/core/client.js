@@ -4,10 +4,9 @@ import {
 
 import { MESSAGES } from '#message'
 import * as handler from '#handler';
-import * as log from '#log';
 
-const RETRY_DELAY = 5;
-const RETRY_COUNT = 3;
+import * as file from '#file';
+import * as log from '#log';
 
 const STATUS = Object.freeze({
     online: MESSAGES.STATUS.ONLINE,
@@ -23,14 +22,20 @@ export class JjingBot extends Client {
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
         GatewayIntentBits.Guilds]});
-
-        this.#initialize();
     
         this.jjing = {
             name: '',
             path: 'src/commands',
-            list: [],
+
+            delay: 5,
+            count: 3,
         }
+
+        this.commands = new Map();
+        this.customIds = new Map();
+        this.messages = new Map();
+
+        this.#initialize();
     }
 
     #initialize() {
@@ -47,47 +52,95 @@ export class JjingBot extends Client {
         });
     }
 
+    register(inst) {
+        inst.commands?.forEach(cmd => {
+            this.commands.set(cmd.name, inst);
+        });
+
+        inst.customId?.forEach(id => {
+            this.customIds.set(id, inst);
+        });
+
+        if (inst.message) {
+            this.messages.set(inst.name, inst);
+        }
+    }
+
+    async loadModules(path) {
+        if (!path) return;
+        try {
+            const js = file.dir(path)
+                .filter(file =>
+                file.endsWith('.js'));
+            
+            await this.importModules(js, path);
+        } catch (e) {
+            log.error('✖', String(path),
+                MESSAGES.LOAD.NOT_FOUND);
+            handler.error(e);
+        }
+    }
+
+    async importModules(files, path) {
+        try {
+            for (const name of files) {
+                const mod = await import(
+                    file.url(path, name));
+
+                if (!mod.default) continue;
+                    
+                this.register(mod.default);
+
+                log.load('✔', name,
+                    MESSAGES.LOAD.SUCCESS);
+            }
+        } catch (e) {
+            log.error('✖', name,
+                MESSAGES.LOAD.FAIL);
+            handler.error(e);
+        }
+    }
+
     async registerCommands() {
         try {
             const rest = new REST({ version: '10' })
                 .setToken(this.jjing?.token);
 
-            const body = this.jjing?.list.flatMap(c =>
-                c.commands?.map(cmd =>
+            const body = [...this.commands.values()]
+                .flatMap(c => c.commands?.map(cmd =>
                 cmd.toJSON()) ?? []);
 
             if (!this.jjing?.clientId) {
                 this.#undefinedClient();
             }
 
-            await rest.put(
-                Routes.applicationGuildCommands(
-                    this.jjing?.clientId,
-                    this.jjing?.guildId), { body: [] });
-
             if (!this.jjing?.guildId) {
                 this.#undefinedGuild();
             }
+
+            await rest.put(
+                Routes.applicationGuildCommands(
+                    this.jjing?.clientId,
+                    this.jjing?.guildId
+                ), { body }
+            );
             
             await rest.put(
                 Routes.applicationCommands(
-                    this.jjing?.clientId), { body: [] }
-            )
+                    this.jjing?.clientId
+                ), { body: [] }
+            );
 
             log.load(MESSAGES.COMMAND.SUCCESS);
         } catch (e) {
-            this.#errorCommands(e);
+            log.error(MESSAGES.COMMAND.FAIL);
+            handler.error(error);
         }
     }
 
     #undefinedClient() {
         throw new Error(
             MESSAGES.COMMAND.CLIENT_UNDEFINED);
-    }
-
-    #errorCommands(error) {
-        log.error(MESSAGES.COMMAND.FAIL);
-        handler.error(error);
     }
 
     config(options = {}) {
@@ -107,6 +160,8 @@ export class JjingBot extends Client {
         this.#changeStatus(this.jjing?.status)
 
         this.#printGuild(this.jjing?.guildId);
+
+        await this.loadModules(this.jjing?.path);
 
         await this.registerCommands();
     }
@@ -140,18 +195,14 @@ export class JjingBot extends Client {
             log.load(MESSAGES.GUILD.SUCCESS);
             log.info('🚪', guild.name);
         } catch (e) {
-            this.#errorGuild(e);
+            log.error(MESSAGES.GUILD.FAIL);
+            handler.error(e);
         }
     }
 
     #undefinedGuild() {
         throw new Error(
             MESSAGES.GUILD.GUILD_UNDEFINED);
-    }
-
-    #errorGuild(error) {
-        log.error(MESSAGES.GUILD.FAIL);
-        handler.error(error);
     }
 
     async start(retry = 0) {
@@ -176,18 +227,23 @@ export class JjingBot extends Client {
         log.error(MESSAGES.LOGIN.FAIL);
         handler.error(error);
 
-        if (retry >= RETRY_COUNT) {
+        if (!this.jjing?.count
+        || !this.jjing?.delay) {
+            return;
+        }
+
+        if (retry >= this.jjing?.count) {
             return log.error(
                 MESSAGES.LOGIN.RETRY_LIMIT);
         }
 
         log.warn(
             MESSAGES.LOGIN.RETRY_COUNT(
-                RETRY_DELAY, 
+                this.jjing?.delay, 
                 retry + 1, RETRY_COUNT));
 
         setTimeout(() => {
             this.start(retry + 1);
-        }, RETRY_DELAY * 1000);
+        }, this.jjing?.delay * 1000);
     }
 }

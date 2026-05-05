@@ -1,12 +1,4 @@
 export const MESSAGES = {
-    
-    STATUS: {
-        ONLINE: '🟢 온라인',
-        IDLE: '🟡 자리 비움',
-        DND: '🔴 방해 금지',
-        INVISIBLE: '⚫ 오프라인',
-        UNKNOWN: '❓ 알 수 없음'
-    },
 
     LOGIN: {
         SUCCESS: '🎮 Discord 로그인 완료',
@@ -18,6 +10,14 @@ export const MESSAGES = {
 
         RETRY_COUNT: (n, r, m) => `⏰ ${n}초 후 재시도 (${r}/${m})`,
         RETRY_LIMIT: '🚫 재시도 횟수가 초과했습니다!',
+    },
+    
+    STATUS: {
+        ONLINE: '🟢 온라인',
+        IDLE: '🟡 자리 비움',
+        DND: '🔴 방해 금지',
+        INVISIBLE: '⚫ 오프라인',
+        UNKNOWN: '❓ 알 수 없음'
     },
 
     GUILD: {
@@ -40,5 +40,12 @@ export const MESSAGES = {
 
     ERROR: {
         BODY_INVALID: '🚫 잘못된 요청 형식입니다!',
+    },
+
+    LOAD: {
+        SUCCESS: '로드 완료',
+        FAIL: '로드 실패',
+
+        NOT_FOUND: '폴더를 찾을 수 없습니다!',
     },
 }
