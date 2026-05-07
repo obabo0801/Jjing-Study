@@ -100,10 +100,10 @@ JJING_TOKEN=YOUR_TOKEN
   🔸 `"token"`: `"JJING_BOT"`
   
 🔹 `status` 봇 상태  
-  🔸 `online` 온라인
-  🔸 `idle` 자리 비움  
-  🔸 `dnd` 방해 금지
-  🔸 `invisible` 오프라인  
+  🟢 `online` 온라인
+  🟡 `idle` 자리 비움  
+  🔴 `dnd` 방해 금지
+  ⚫ `invisible` 오프라인  
   
 🔹 `clientId` [클라이언트 ID](https://discord.com/developers/applications)  
 🔹 `guildId` [길드 ID](https://support-dev.discord.com/hc/ko/articles/360028717192)  
