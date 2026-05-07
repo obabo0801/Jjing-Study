@@ -18,7 +18,12 @@ let clients = new Map();
 
 (async () => {
     config({ quiet: true });
-    await setupClients()
+    try {
+        await setupClients();
+    } catch (e) {
+        log.error(e.message);
+        initialize();
+    }
 })();
 
 function parseEnv(name, show = true) {
@@ -60,11 +65,13 @@ rl.on('line', async (input) => {
 
 function initialize() {
     log.clear();
-    log.prompt('────────────────────────')
+    log.prompt('─────────────────────────')
     log.prompt('　Jjing Bot Manager 🐕')
-    render(false);
-
-    log.prompt(' restart | refresh | exit');
+    render(true);
+    log.prompt('[Commands]\n')
+    log.prompt(' start   restart   stop');
+    log.prompt(' state   refresh   exit');
+    log.prompt('─────────────────────────')
 
     rl.prompt();
 }
@@ -119,11 +126,13 @@ async function handler(input) {
     const [cmd, arg] = input.split(' ');
     switch (cmd) {
     case 'start': {
-        const i = arg 
-            ? parseInt(arg) : await select();
-        if (i === null) break;
         log.cmd(
             MESSAGES.LOGIN.ATTEMPT);
+        const i = arg 
+            ? check(arg) : await select();
+        if (i === null) {
+            initialize(); break;
+        }
         try {
             if (i === 0) {
                 await startAll();
@@ -139,16 +148,25 @@ async function handler(input) {
         break;
     }
     case 'restart': {
-        await stopAll();
-        await setupClients();
+        log.cmd(
+            MESSAGES.LOGIN.RESTART);
+        try {
+            await stopAll();
+            await setupClients();
+        } catch (e) {
+            log.error(e.message);
+            rl.prompt();
+        }
         break;
     }
     case 'stop': {
-        const i = arg 
-            ? parseInt(arg) : await select();
-        if (i === null) break;
         log.cmd(
             MESSAGES.LOGOUT.ATTEMPT);
+        const i = arg 
+            ? check(arg) : await select();
+        if (i === null) {
+            initialize(); break;
+        }
         try {
             if (i === 0) {
                 await stopAll();
@@ -164,12 +182,36 @@ async function handler(input) {
         }
         break;
     }
-    case 'refresh': {
+    case 'state': {
+        log.cmd(
+            MESSAGES.STATES.ATTEMPT);
         const i = arg 
-            ? parseInt(arg) : await select();
-        if (i === null) break;
+            ? check(arg) : await select();
+        if (i === null) {
+            initialize(); break;
+        }
+        try {
+            if (i === 0) {
+                await statesAll();
+            } else {
+                await states(
+                    clients.get(i))
+                ready(clients.get(i));
+            }
+        } catch (e) {
+            log.error(e.message);
+            rl.prompt();
+        }
+        break;
+    }
+    case 'refresh': {
         log.cmd(
             MESSAGES.REFRESH.ATTEMPT);
+        const i = arg 
+            ? check(arg) : await select();
+        if (i === null) {
+            initialize(); break;
+        }
         try {
             if (i === 0) {
                 await refreshAll();
@@ -198,25 +240,96 @@ async function handler(input) {
     }
 }
 
-function render(show = false) {
-    log.prompt('────────────────────────\n')
-
-    if (show) {
-        log.prompt('0. Everything')
-    }
+async function render(show = false) {
+    log.prompt('─────────────────────────\n')
+    if (show) log.prompt('[0] All Bots');
 
     for (const [k, v] of clients) {
-        const index = show
-            ? `${k}. ` : '';
-        
+        const i = show ? `[${k}] ` : '';
         const status = v.getStarts?.();
-        
-        log.prompt(`${index}`
-            + `${v.jjing?.name} `
+        log.prompt(`${i}` + `${v.jjing?.name} `
             + `${status}`);
     }
 
-    log.prompt('\n────────────────────────')
+    log.prompt('\n─────────────────────────')
+}
+
+async function showStates(client) {
+    log.prompt('─────────────────────────\n')
+
+    const status = client.getStarts?.();
+    const bot = client.user?.tag || 'UNKNOWN';
+    const total = Math.floor(client.uptime / 1000);
+    const hour = Math.floor(total / 3600);
+    const min = Math.floor((total % 3600) / 60);
+    const sec = total % 60;
+    const global = await client.isGlobal?.();
+    const guild = await client.isGuild?.();
+    const ping = `${client.ws.ping}ms`;
+    const uptime = `${hour}s ${min}h ${sec}m`;
+
+    log.prompt(`${client.jjing?.name} `
+        + `${status}`);
+    log.prompt('\n─────────────────────────')
+    log.prompt(`BOT        ${bot}`);
+    log.prompt(global
+        ? `GLOBAL     🟢` : `GLOBAL     🔴`)
+    log.prompt(guild
+        ? `GUILD      🟢` : `GUILD      🔴`)
+    log.prompt(`PING       ${ping}`);
+    log.prompt(`UPTIME     ${uptime}`);
+    log.prompt('─────────────────────────')
+}
+
+function states(client) {
+    if (!client) {
+        initialize(); return;
+    }
+
+    return new Promise(async (resolve) => {
+
+    await showStates(client);
+
+    rl.question('', (i) => {
+        resolve();
+    });
+
+    });
+}
+
+async function statesAll() {
+    if (clients.size === 0) {
+        initialize(); return;
+    }
+
+    for (const [id, client] of clients) {
+        await showStates(client);
+    }
+    
+    return new Promise(async (resolve) => {
+
+    rl.question('', (i) => {
+        const client = [...clients
+            .values()].at(-1);
+        
+        if (client) { ready(client);
+        } else { initialize(); }
+
+        resolve();
+    });
+
+    });
+}
+
+function check(num) {
+    const i = parseInt(num);
+
+    if (isNaN(i) || (i !== 0
+        && !clients.get(i))) {
+        return null;
+    }
+
+    return i;
 }
 
 function select() {
@@ -226,11 +339,12 @@ function select() {
 
     rl.question('', (i) => {
         const num = parseInt(i);
-        log.input(num);
+        log.input(i);
 
         if (isNaN(num) || (num !== 0
-            && !clients.get(num))) {
-            initialize(); rl.prompt();
+        && !clients.get(num))) {
+            initialize();
+            rl.prompt();
             return resolve(null);
         }
             
@@ -242,7 +356,7 @@ function select() {
 
 async function ready(client) {
     if (await delay(client)) {
-        initialize(); rl.prompt();
+        initialize();
     }
 }
 
@@ -250,7 +364,7 @@ async function delay(client) {
     return new Promise((resolve) => {
     
     const check = () => {
-        if (client.isDeploy()) {
+        if (client?.isDeploy()) {
             resolve(true);
             return;
         }
@@ -283,9 +397,12 @@ async function startAll() {
     for (const [id, client] of clients) {
         await start(client);
     }
+
     const client = [...clients
         .values()].at(-1);
-    ready(client);
+    
+    if (client) { ready(client);
+    } else { initialize(); }
 }
 
 async function stopAll() {
@@ -293,18 +410,24 @@ async function stopAll() {
         await stop(client);
         initClients(id); 
     }
+    
     const client = [...clients
         .values()].at(-1);
-    ready(client);
+    
+    if (client) { ready(client);
+    } else { initialize(); }
 }
 
 async function refreshAll() {
     for (const [id, client] of clients) {
         await refresh(client);
     }
+    
     const client = [...clients
         .values()].at(-1);
-    ready(client);
+    
+    if (client) { ready(client);
+    } else { initialize(); }
 }
 
 process.on('SIGINT', () => {

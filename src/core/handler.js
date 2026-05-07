@@ -47,7 +47,12 @@ export function message(client, m) {
 }
 
 export function error(error) {
-    if (error.code === 'TokenInvalid') {
+    if (error.code === 'ENOTFOUND') {
+        return log.error(
+            MESSAGES.LOGIN.ENOTFOUND);
+    }
+
+    else if (error.code === 'TokenInvalid') {
         return log.error(
             MESSAGES.LOGIN.TOKEN_INVALID);
     }

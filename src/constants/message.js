@@ -5,12 +5,20 @@ export const MESSAGES = {
         FAIL: '📄 .env 로드 실패',
     },
 
+    STATES: {
+        ATTEMPT: '⏰ 상태를 확인합니다.',
+    },
+
     LOGIN: {
         ATTEMPT: '⏰ 로그인을 시도합니다.',
+        
+        RESTART: '⏰ 재시작을 시도합니다.',
+
         RUNNING: '❗ 이미 실행 중입니다.',
         SUCCESS: '🎮 Discord 로그인 완료',
         FAIL: '🎮 Discord 로그인 실패',
 
+        ENOTFOUND: '❌ 인터넷이 오프라인 상태입니다.',
         TOKEN_UNDEFINED: '❌ Token 이 설정되지 않았습니다.',
         TOKEN_INVALID: '❌ 유효하지 않은 Token 입니다.',
         DISALLOWED_INTENTS: '❌ Gateway Intents 권한이 없습니다.',
@@ -21,6 +29,7 @@ export const MESSAGES = {
 
     LOGOUT: {
         ATTEMPT: '⏰ 로그아웃을 시도합니다.',
+        
         STOPPED: '❗ 이미 종료된 상태입니다.',
         SUCCESS: '🎮 Discord 로그아웃 완료',
         FAIL: '🎮 Discord 로그아웃 실패',
@@ -43,6 +52,8 @@ export const MESSAGES = {
     },
 
     COMMAND: {
+        ATTEMPT: '⏰ Commands 등록 시도',
+        
         SUCCESS: '🌏 Commands 등록 완료',
         FAIL: '🌏 Commands 등록 실패',
 

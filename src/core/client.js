@@ -126,6 +126,49 @@ export class JjingBot extends Client {
         }
     }
 
+    async isGlobal() {
+        try {
+            const rest = new REST({ version: '10' })
+                .setToken(this.#getToken());
+            
+            if (!this.jjing?.clientId) {
+                return false;
+            }
+            
+            const commands = await rest.get(
+                Routes.applicationCommands(
+                    this.user.id
+                )
+            );
+            
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    async isGuild() {
+        try {
+            const rest = new REST({ version: '10' })
+                .setToken(this.#getToken());
+            
+            if (!this.jjing?.guildId) {
+                return false;
+            }
+            
+            const commands = await rest.get(
+                Routes.applicationGuildCommands(
+                    this.user.id,
+                    this.jjing?.guildId
+                )
+            );
+            
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
     isDeploy() { return this.deploy; }
 
     async deployCommands() {
@@ -138,17 +181,18 @@ export class JjingBot extends Client {
                 this.#undefinedGuild();
             }
 
-            const rest = new REST(
-                { version: '10' })
+            const rest = new REST({ version: '10' })
                 .setToken(this.#getToken());
+            
+            this.deploy = false;
+
+            log.info(MESSAGES.COMMAND.ATTEMPT);
 
             const body = [...new Set(
                 this.commands.values())]
                 .flatMap(c =>
                 c.commands?.map(cmd =>
                 cmd.toJSON()) ?? []);
-            
-            this.deploy = false;
 
             await rest.put(
                 Routes.applicationGuildCommands(
@@ -167,8 +211,10 @@ export class JjingBot extends Client {
 
             log.load(MESSAGES.COMMAND.SUCCESS);
         } catch (e) {
+            this.deploy = true;
+
             log.error(MESSAGES.COMMAND.FAIL);
-            handler.error(error);
+            handler.error(e);
         }
     }
 
@@ -207,9 +253,9 @@ export class JjingBot extends Client {
 
         if (!name) return;
         log.prompt('')
-        log.prompt('────────────────────')
+        log.prompt('─────────────────────────')
         log.prompt(`${name}`);
-        log.prompt('────────────────────')
+        log.prompt('─────────────────────────')
     }
 
     getStarts() {
