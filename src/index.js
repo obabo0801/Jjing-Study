@@ -100,10 +100,11 @@ async function setupClients() {
 }
 
 function configClients(name) {
-    const config = file.json(name);
-
-    if (!config) return;
     clients.clear();
+
+    const config = file.json(name);
+    
+    if (!config) return;
 
     Object.entries(config)
         .forEach(([key, value]) => {
@@ -118,6 +119,7 @@ async function initClients(id) {
     const old = clients.get(id);
     if (old.isReady()) return;
     const client = new JjingBot();
+    client.deploy = true;
     client.config(old.jjing);
     clients.set(id, client);
 }
