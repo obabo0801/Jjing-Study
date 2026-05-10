@@ -2,7 +2,6 @@ import { google } from 'googleapis';
 
 import { MESSAGES } from '#i18n';
 import { error } from '#handler';
-
 import * as log from '#log';
 
 export class GoogleSheet {
@@ -95,6 +94,18 @@ export class GoogleSheet {
         }
     }
 
+    normalize(value) {
+        return String(value ?? '').trim();
+    }
+
+    buildRange(range, row) {
+        const [sName, cRange] = range.split('!');
+        const cStart = cRange.split(':')[0];
+        const column = cStart.replace(/[0-9]/g, '');
+
+        return `${sName}!${column}${row + 1}`;
+    }
+
     async getStatus() {
         const res = await this.isReady();
         if (res?.ok) {
@@ -116,22 +127,110 @@ export class GoogleSheet {
         }
     }
 
-    async get(range) {
-        const { data } = await this.sheets.spreadsheets.values.get({
-            spreadsheetId: process.env[this.sheetId],
-            range
-        });
+    async get(range, { value = 'FORMATTED_VALUE', cache = true } = {}) {
+        const key = `${range}:${value}`;
+        const cached = this.cache.get(key);
 
-        return data.values ?? [];
+        if (cache && cached && Date.now() - cached.time < 50000) {
+            return cached.data.map(row => [...row]);
+        }
+
+        try {
+            const { data } = await this.sheets.spreadsheets.values.get({
+                spreadsheetId: this.sheetId,
+                range,
+                valueRenderOption: value
+            });
+
+            const values = data.values;
+
+            if (cache) {
+                this.cache.set(key, { time: Date.now(), data: values });
+            }
+            
+            return values;
+        } catch (e) {
+            return null;
+        }
     }
 
-    async set(range, values) {
+    async set(range, ...values) {
         await this.sheets.spreadsheets.values.update({
             spreadsheetId: process.env[this.sheetId],
             range,
             valueInputOption: 'USER_ENTERED',
             requestBody: { values: [values] }
         });
+
+        this.clear(range);
+    }
+
+    async find(range, col, value, options = {}) {
+        const rows = await this.get(range, options);
+        const target = this.normalize(value);
+
+        return rows.find(row => 
+            this.normalize(row[col]) === target
+        ) ?? null;
+    }
+
+    async find(range, { col = 0, value = '', options = {} } = {}) {
+        const rows = await this.get(range, options);
+        const target = this.normalize(value);
+
+        return rows.find(row => 
+            this.normalize(row[col]) === target
+        ) ?? null;
+    }
+
+    async index(range, options = {}) {
+        const rows = await this.get(range, options);
+        const target = this.normalize(options.value);
+        
+        const index = rows.findIndex(row => 
+            this.normalize(row[options.col]) === target
+        );
+
+        return index === -1
+            ? { result: null, row: null }
+            : { result, row: rows[index] };
+    }
+
+    async index(range, { col = 0, value = '', options = {} } = {}) {
+        const rows = await this.get(range, options);
+        const target = this.normalize(value);
+
+        return rows.find(row => 
+            this.normalize(row[col]) === target
+        ) ?? null;
+    }
+
+    async append(range, ...values) {
+        await this.sheets.spreadsheets.values.append({
+            spreadsheetId: process.env[this.sheetId],
+            range,
+            valueInputOption: 'USER_ENTERED',
+            requestBody: {values: [values]}
+        });
+    }
+
+    async update(range, row, ...values) {
+        await this.sheets.spreadsheets.values.update({
+            spreadsheetId: process.env[this.sheetId],
+            range: this.buildRange(range, row),
+            valueInputOption: 'USER_ENTERED',
+            requestBody: {values: [values]}
+        });
+    }
+
+    clear(range = null) {
+        if (!range) return this.cache.clear();
+
+        for (const key of this.cache.keys()) {
+            if (key.startsWith(range)) {
+                this.cache.delete(key);
+            }
+        }
     }
 
     #printBanner(name = '') {
