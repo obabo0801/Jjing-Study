@@ -57,8 +57,8 @@ export const MESSAGES = {
     STATUS: {
         ATTEMPT: '⏰ 상태를 확인합니다.',
 
-        CONNECTED: '🟢 성공',
-        DISCONNECTED: '🔴 실패',
+        CONNECTED: '🟢 연결됨',
+        DISCONNECTED: '🔴 연결되지 않음',
 
         ONLINE: '🟢 온라인',
         IDLE: '🟡 자리 비움',

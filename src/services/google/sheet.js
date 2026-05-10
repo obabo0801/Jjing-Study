@@ -29,8 +29,8 @@ export class GoogleSheet {
 
             this.auth = new google.auth.GoogleAuth({
                 credentials: {
-                    client_email: process.env[this.email],
-                    private_key: process.env[this.key]
+                    client_email: this.getEmail(),
+                    private_key: this.#getKey()
                         ?.replace(/\\n/g, '\n')},
                 scopes: this.scopes || this.#scopes()
             });
@@ -92,6 +92,22 @@ export class GoogleSheet {
         }
     }
 
+    getName() {
+        return process.env[this.name] || this.name;
+    }
+
+    getEmail() {
+        return process.env[this.email] || this.email;
+    }
+
+    #getKey() {
+        return process.env[this.key] || this.key;
+    }
+
+    getSheetId() {
+        return process.env[this.sheetId] || this.sheetId;
+    }
+
     normalize(value) {
         return String(value ?? '').trim();
     }
@@ -104,7 +120,7 @@ export class GoogleSheet {
         return `${sName}!${column}${row + 1}`;
     }
 
-    async getStatus() {
+    async infoStatus() {
         const res = await this.isReady();
         if (res?.ok) {
             return MESSAGES.STATUS.CONNECTED;
@@ -116,7 +132,7 @@ export class GoogleSheet {
     async isReady() {
         try {
             await this.sheets.spreadsheets.get({
-                spreadsheetId: process.env[this.sheetId]
+                spreadsheetId: this.getSheetId()
             });
 
             return { ok: true, error: undefined };
@@ -135,7 +151,7 @@ export class GoogleSheet {
 
         try {
             const { data } = await this.sheets.spreadsheets.values.get({
-                spreadsheetId: this.sheetId,
+                spreadsheetId: this.getSheetId(),
                 range,
                 valueRenderOption: value
             });
@@ -154,7 +170,7 @@ export class GoogleSheet {
 
     async set(range, ...values) {
         await this.sheets.spreadsheets.values.update({
-            spreadsheetId: process.env[this.sheetId],
+            spreadsheetId: this.getSheetId(),
             range,
             valueInputOption: 'USER_ENTERED',
             requestBody: { values: [values] }
@@ -205,7 +221,7 @@ export class GoogleSheet {
 
     async append(range, ...values) {
         await this.sheets.spreadsheets.values.append({
-            spreadsheetId: process.env[this.sheetId],
+            spreadsheetId: this.getSheetId(),
             range,
             valueInputOption: 'USER_ENTERED',
             requestBody: {values: [values]}
@@ -214,7 +230,7 @@ export class GoogleSheet {
 
     async update(range, row, ...values) {
         await this.sheets.spreadsheets.values.update({
-            spreadsheetId: process.env[this.sheetId],
+            spreadsheetId: this.getSheetId(),
             range: this.buildRange(range, row),
             valueInputOption: 'USER_ENTERED',
             requestBody: {values: [values]}
@@ -237,7 +253,7 @@ export class GoogleSheet {
 
     #printBanner(name = '') {
         if (!name) {
-            name = this.name;
+            name = this.getName();
         }
     
         if (!name) return;

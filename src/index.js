@@ -1,7 +1,12 @@
+import {
+    SoopChatEvent, SoopClient
+} from 'soop-extension'
+
 import { config, parse } from 'dotenv';
 import readline from 'readline';
+import { setLanguage } from '#i18n';
 
-import { MESSAGES, setLanguage } from '#i18n';
+import { MESSAGES } from '#i18n';
 import { DiscordBot } from '#discord';
 import { GoogleSheet } from '#google';
 import { error } from '#handler';
@@ -25,6 +30,7 @@ let bots = new Map();
         parseEnv('.env', false);
         await setupGoogles();
         await setupBots();
+        await setupSoop();
     } catch (e) {
         error(e);
         initialize();
@@ -61,6 +67,11 @@ function parseEnv(name, show = true) {
             error(e);
         }
     }
+}
+
+// ───────────────────────── SOOP SETUP
+
+async function setupSoop() {
 }
 
 // ───────────────────────── GOOGLE SETUP
@@ -108,9 +119,9 @@ async function renderGoogles(show = false) {
 
     for (const [k, v] of googles) {
         const i = show ? `[${k}] ` : '';
-        const status = await v.getStatus?.();
+        const status = await v.infoStatus?.();
 
-        log.prompt(`${i}${v.name} ${status}`);
+        log.prompt(`${i}${v.getName?.()} ${status}`);
     }
 
     log.prompt('\n─────────────────────────')
@@ -213,13 +224,15 @@ async function exitBots() {
 async function renderBots(show = false) {
     log.prompt('─────────────────────────\n')
 
-    if (show) log.prompt(MESSAGES.CLI.BOTS);
+    if (show && bots.length) {
+        log.prompt(MESSAGES.CLI.BOTS);
+    }
 
     for (const [k, v] of bots) {
         const i = show ? `[${k}] ` : '';
-        const status = v.getStatus?.();
+        const status = v.infoStatus?.();
 
-        log.prompt(`${i}${v.jjing?.name} ${status}`);
+        log.prompt(`${i}${v.getName?.()} ${status}`);
     }
 
     log.prompt('\n─────────────────────────')
@@ -228,7 +241,7 @@ async function renderBots(show = false) {
 async function showBot(bot) {
     log.prompt('─────────────────────────\n')
 
-    const status = bot.getStatus?.();
+    const status = bot.infoStatus?.();
     const name = bot.user?.tag || 'UNKNOWN';
 
     const total = Math.floor(bot.uptime / 1000);
@@ -242,7 +255,7 @@ async function showBot(bot) {
     const ping = `${bot.ws.ping}ms`;
     const uptime = `${hour}h ${min}m ${sec}s`;
 
-    log.prompt(`${bot.jjing?.name} ${status}`);
+    log.prompt(`${bot.getName?.()} ${status}`);
     log.prompt('\n─────────────────────────')
     log.prompt(`${MESSAGES.CLI.NAME} ${name}`);
     log.prompt(`${MESSAGES.CLI.GLOBAL} ${global}`);

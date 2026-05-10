@@ -11,19 +11,6 @@ const interactions = [
     ['modalSubmit', i => i.isModalSubmit()],
 ];
 
-const errors = [
-    ['ENOTFOUND', MESSAGES.LOGIN.ENOTFOUND],
-    ['TokenInvalid', MESSAGES.LOGIN.TOKEN_INVALID],
-    [50001, MESSAGES.COMMAND.MISSING_ACCESS],
-    [50035, MESSAGES.ERROR.BODY_INVALID],
-    [10002, MESSAGES.COMMAND.CLIENT_INVALID],
-    [10004, MESSAGES.GUILD.INVALID],
-    [400, MESSAGES.SHEET.ERROR400],
-    [401, MESSAGES.SHEET.ERROR401],
-    [403, MESSAGES.SHEET.ERROR403],
-    [404, MESSAGES.SHEET.ERROR404],
-];
-
 export function interaction(client, i) {
     try {
         for (const [event, check] of interactions) {
@@ -68,6 +55,19 @@ export function clear() {
 }
 
 export function error(error) {
+    const errors = [
+        ['ENOTFOUND', MESSAGES.LOGIN.ENOTFOUND],
+        ['TokenInvalid', MESSAGES.LOGIN.TOKEN_INVALID],
+        [50001, MESSAGES.COMMAND.MISSING_ACCESS],
+        [50035, MESSAGES.ERROR.BODY_INVALID],
+        [10002, MESSAGES.COMMAND.CLIENT_INVALID],
+        [10004, MESSAGES.GUILD.INVALID],
+        [400, MESSAGES.SHEET.ERROR400],
+        [401, MESSAGES.SHEET.ERROR401],
+        [403, MESSAGES.SHEET.ERROR403],
+        [404, MESSAGES.SHEET.ERROR404],
+    ];
+
     for (const [code, message] of errors) {
         if (error?.code === code) {
             return log.error(message);

@@ -41,15 +41,11 @@ export class DiscordBot extends Client {
         Object.assign(this.jjing, valid);
     }
 
-    #getToken() {
-        return process.env[this.jjing?.token];
-    }
-
     async loadScripts(path = '') {
         let js;
         try {
             if (!path) {
-                path = this.jjing?.path;
+                path = this.getPath();
             }
 
             js = file.dir(path)
@@ -114,11 +110,11 @@ export class DiscordBot extends Client {
 
     async deployCommands() {
         try {
-            if (!this.jjing?.clientId) {
+            if (!this.getClientId()) {
                 this.#undefinedClient();
             }
 
-            if (!this.jjing?.guildId) {
+            if (!this.getGuildId()) {
                 this.#undefinedGuild();
             }
 
@@ -134,14 +130,14 @@ export class DiscordBot extends Client {
 
             await rest.put(
                 Routes.applicationGuildCommands(
-                    this.jjing?.clientId,
-                    this.jjing?.guildId
+                    this.getClientId(),
+                    this.getGuildId()
                 ), { body }
             );
             
             await rest.put(
                 Routes.applicationCommands(
-                    this.jjing?.clientId
+                    this.getClientId()
                 ), { body: [] }
             );
 
@@ -154,6 +150,46 @@ export class DiscordBot extends Client {
             log.error(MESSAGES.COMMAND.FAIL);
             handler.error(e);
         }
+    }
+
+    getName() {
+        return process.env[this.jjing?.name]
+            || this.jjing?.name;
+    }
+
+    getPath() {
+        return process.env[this.jjing?.path]
+            || this.jjing?.path;
+    }
+
+    getClientId() {
+        return process.env[this.jjing?.clientId]
+            || this.jjing?.clientId;
+    }
+
+    getGuildId() {
+        return process.env[this.jjing?.guildId]
+            || this.jjing?.guildId;
+    }
+
+    #getToken() {
+        return process.env[this.jjing?.token]
+            || this.jjing?.token;
+    }
+
+    getStatus() {
+        return process.env[this.jjing?.status]
+            || this.jjing?.status;
+    }
+
+    getCount() {
+        return process.env[this.jjing?.count]
+            || this.jjing?.count;
+    }
+
+    getDelay() {
+        return process.env[this.jjing?.delay]
+            || this.jjing?.delay;
     }
 
     async getGlobal() {
@@ -170,7 +206,7 @@ export class DiscordBot extends Client {
             const rest = new REST({ version: '10' })
                 .setToken(this.#getToken());
             
-            if (!this.jjing?.clientId) {
+            if (!this.getClientId()) {
                 return false;
             }
             
@@ -200,14 +236,14 @@ export class DiscordBot extends Client {
             const rest = new REST({ version: '10' })
                 .setToken(this.#getToken());
             
-            if (!this.jjing?.guildId) {
+            if (!this.getGuildId()) {
                 return false;
             }
             
             const commands = await rest.get(
                 Routes.applicationGuildCommands(
                     this.user.id,
-                    this.jjing?.guildId
+                    this.getGuildId()
                 )
             );
             
@@ -219,7 +255,7 @@ export class DiscordBot extends Client {
 
     isDeploy() { return this.deploy; }
 
-    getStatus() {
+    infoStatus() {
         return MESSAGES.STATUS[
             this.user?.presence.status.toUpperCase()]
             || MESSAGES.STATUS.INVISIBLE;
@@ -228,7 +264,7 @@ export class DiscordBot extends Client {
     #changeStatus(status) {
         if (!status) return;
         this.user?.setPresence({status});
-        log.info(this.getStatus());
+        log.info(this.infoStatus());
     }
 
     async #printGuild(guildId) {
@@ -251,16 +287,16 @@ export class DiscordBot extends Client {
     }
 
     async ready() {
-        this.#printBanner(this.jjing?.name);
+        this.#printBanner(this.getName());
 
         log.load(MESSAGES.LOGIN.SUCCESS);
         log.info('👤', this.user.tag);
 
-        this.#changeStatus(this.jjing?.status)
+        this.#changeStatus(this.getStatus())
 
-        this.#printGuild(this.jjing?.guildId);
+        this.#printGuild(this.getGuildId());
 
-        await this.loadScripts(this.jjing?.path);
+        await this.loadScripts(this.getPath());
 
         await this.deployCommands();
     }
@@ -317,7 +353,7 @@ export class DiscordBot extends Client {
     
     #printBanner(name = '') {
         if (!name) {
-            name = this.jjing?.name;
+            name = this.getName();
         }
 
         if (!name) return;
@@ -336,12 +372,11 @@ export class DiscordBot extends Client {
             MESSAGES.LOGIN.FAIL);
         handler.error(error);
 
-        if (!this.jjing?.count
-        || !this.jjing?.delay) {
+        if (!this.getCount() || !this.getDelay()) {
             return;
         }
 
-        if (retry >= this.jjing?.count) {
+        if (retry >= this.getCount()) {
             this.deploy = true;
             log.error(
                 MESSAGES.LOGIN.RETRY_LIMIT);
@@ -351,13 +386,13 @@ export class DiscordBot extends Client {
 
         log.warn(
             MESSAGES.LOGIN.RETRY_COUNT(
-                this.jjing?.delay, 
+                this.getDelay(), 
                 retry + 1,
-                this.jjing?.count));
+                this.getCount()));
 
         setTimeout(() => {
             this.start(retry + 1);
-        }, this.jjing?.delay * 1000);
+        }, this.getDelay() * 1000);
 
         });
     }
