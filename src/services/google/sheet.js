@@ -32,9 +32,7 @@ export class GoogleSheet {
                     client_email: process.env[this.email],
                     private_key: process.env[this.key]
                         ?.replace(/\\n/g, '\n')},
-                scopes: [
-                    this.scope || process.env.GOOGLE_SCOPE
-                ]
+                scopes: this.scopes || this.#scopes()
             });
 
             const client = await this.auth.getClient();
@@ -231,6 +229,10 @@ export class GoogleSheet {
                 this.cache.delete(key);
             }
         }
+    }
+
+    #scopes() {
+        return 'https://www.googleapis.com/auth/spreadsheets'
     }
 
     #printBanner(name = '') {
