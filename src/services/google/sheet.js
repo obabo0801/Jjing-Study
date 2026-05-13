@@ -1,10 +1,10 @@
 import { google } from 'googleapis';
-
+import { EventEmitter } from 'events';
 import { MESSAGES } from '#i18n';
 import * as log from '#log';
 
-export class GoogleSheet {
-    constructor() {
+export class GoogleSheet extends EventEmitter {
+    constructor() { super();
         this.cache = new Map();
         this.auth = null;
         this.sheets = null;
@@ -14,18 +14,18 @@ export class GoogleSheet {
         const valid = Object.fromEntries(
             Object.entries(options)
             .filter(([_, v]) => v !== undefined));
-
         Object.assign(this, valid);
     }
 
     async start() {
         try {
             this.#printBanner();
-
-            if (await this.isReady?.().ok) {
-                return log.load(MESSAGES.SHEET.RUNNING);
+            let sheet = await this.isReady();
+            if (sheet.ok) {
+                log.warn(MESSAGES.SHEET.RUNNING);
+                this.emit('start');
+                return false;
             }
-
             this.auth = new google.auth.GoogleAuth({
                 credentials: {
                     client_email: this.getEmail(),
@@ -33,26 +33,25 @@ export class GoogleSheet {
                         ?.replace(/\\n/g, '\n')},
                 scopes: this.scopes || this.#scopes()
             });
-
-            const client = await this.auth.getClient();
-
             this.sheets = google.sheets({
                 version: 'v4',
-                auth: client
+                auth: this.auth
             });
-
             log.load(MESSAGES.AUTH.SUCCESS);
-
-            const sheet = await this.isReady();
+            sheet = await this.isReady();
             if (sheet.ok) {
                 log.load(MESSAGES.SHEET.IN_SUCCESS);
             } else {
                 log.error(MESSAGES.SHEET.IN_FAIL);
                 this.error(sheet.error);
             }
+            await this.emit('start');
+            return true;
         } catch (e) {
             log.error(MESSAGES.AUTH.FAIL);
             this.error(e)
+            this.emit('start');
+            return false;
         }
     }
 
@@ -63,30 +62,82 @@ export class GoogleSheet {
 
     async stop(skip = false) {
         try {
+            let sheet = await this.isReady();
             if (skip) {
-                this.cache.clear();
-                this.auth = null;
-                this.sheets = null;
-                return;
+                if (!sheet.ok)
+                    this.emit('stop');
+                    return false;
+                this.clear();
+                this.emit('stop');
+                return true;
             }
-
             this.#printBanner();
-
-            if (!this.isReady()) {
-                return log.warn(MESSAGES.SHEET.STOPPED);
+            if (!sheet.ok) {
+                log.warn(MESSAGES.SHEET.STOPPED);
+                this.emit('stop');
+                return false;
             }
-
-            this.cache.clear();
-            this.auth = null;
-            this.sheets = null;
-
+            this.clear();
             log.load(MESSAGES.SHEET.OUT_SUCCESS);
-
+            await this.emit('stop');
             return true;
         } catch (e) {
             log.load(MESSAGES.SHEET.OUT_FAIL);
             this.error(e);
+            this.emit('stop');
+            return false;
+        }
+    }
 
+    async status() {
+        try {
+            let sheet = await this.isReady();
+            this.#printBanner();
+            if (!sheet.ok) {
+                log.warn(MESSAGES.STATUS.NOT_RUNNING);
+                this.emit('status');
+                return false;
+            }
+            log.prompt(MESSAGES.CLI.NAME,
+                sheet.result?.data?.properties?.title);
+            log.prompt(MESSAGES.CLI.STATUS,
+                await this.infoStatus());
+            log.prompt(MESSAGES.CLI.SHEETS,
+                sheet.result?.data?.sheets?.length);
+            log.prompt(MESSAGES.CLI.CACHE,
+                this.cache.size);
+            log.load(MESSAGES.STATUS.SUCCESS);
+            await this.emit('status');
+            return true;
+        } catch (e) {
+            log.error(MESSAGES.STATUS.FAIL);
+            this.error(e);
+            this.emit('status');
+            return false;
+        }
+    }
+
+    async refresh() {
+        try {
+            let sheet = await this.isReady();
+            this.#printBanner();
+            if (!sheet.ok) {
+                log.warn(MESSAGES.SHEET.NOT_RUNNING);
+                this.emit('refresh');
+                return false;
+            }
+            this.cache.clear();
+            this.sheets = google.sheets({
+                version: 'v4',
+                auth: this.auth
+            })
+            log.load(MESSAGES.REFRESH.SUCCESS);
+            await this.emit('refresh');
+            return true;
+        } catch (e) {
+            log.error(MESSAGES.REFRESH.FAIL);
+            this.error(e);
+            this.emit('stop');
             return false;
         }
     }
@@ -115,7 +166,6 @@ export class GoogleSheet {
         const [sName, cRange] = range.split('!');
         const cStart = cRange.split(':')[0];
         const column = cStart.replace(/[0-9]/g, '');
-
         return `${sName}!${column}${row + 1}`;
     }
 
@@ -130,11 +180,10 @@ export class GoogleSheet {
 
     async isReady() {
         try {
-            await this.sheets.spreadsheets.get({
+            const r = await this.sheets.spreadsheets.get({
                 spreadsheetId: this.getSheetId()
             });
-
-            return { ok: true, error: undefined };
+            return { ok: true, result: r };
         } catch (e) {
             return { ok: false, error: e };
         }
@@ -143,24 +192,19 @@ export class GoogleSheet {
     async get(range, { value = 'FORMATTED_VALUE', cache = true } = {}) {
         const key = `${range}:${value}`;
         const cached = this.cache.get(key);
-
         if (cache && cached && Date.now() - cached.time < 5000) {
             return cached.data.map(row => [...row]);
         }
-
         try {
             const { data } = await this.sheets.spreadsheets.values.get({
                 spreadsheetId: this.getSheetId(),
                 range,
                 valueRenderOption: value
             });
-
             const values = data.values;
-
             if (cache) {
                 this.cache.set(key, { time: Date.now(), data: values });
             }
-            
             return values;
         } catch (e) {
             return null;
@@ -175,7 +219,6 @@ export class GoogleSheet {
                 valueInputOption: 'USER_ENTERED',
                 requestBody: { values: [values] }
             });
-
             this.clear(range);
         } catch (e) {
             this.error(e);
@@ -185,7 +228,6 @@ export class GoogleSheet {
     async find(range, col, value, options = {}) {
         const rows = await this.get(range, options);
         const target = this.normalize(value);
-
         return rows.find(row => 
             this.normalize(row[col]) === target
         ) ?? null;
@@ -194,7 +236,6 @@ export class GoogleSheet {
     async find(range, { col = 0, value = '', options = {} } = {}) {
         const rows = await this.get(range, options);
         const target = this.normalize(value);
-
         return rows.find(row => 
             this.normalize(row[col]) === target
         ) ?? null;
@@ -203,11 +244,9 @@ export class GoogleSheet {
     async index(range, options = {}) {
         const rows = await this.get(range, options);
         const target = this.normalize(options.value);
-        
         const index = rows.findIndex(row => 
             this.normalize(row[options.col]) === target
         );
-
         return index === -1
             ? { result: null, row: null }
             : { result, row: rows[index] };
@@ -216,7 +255,6 @@ export class GoogleSheet {
     async index(range, { col = 0, value = '', options = {} } = {}) {
         const rows = await this.get(range, options);
         const target = this.normalize(value);
-
         return rows.find(row => 
             this.normalize(row[col]) === target
         ) ?? null;
@@ -249,8 +287,12 @@ export class GoogleSheet {
     }
 
     clear(range = null) {
-        if (!range) return this.cache.clear();
-
+        if (!range) {
+            this.cache.clear();
+            this.auth = null;
+            this.sheets = null;
+            return;
+        }
         for (const key of this.cache.keys()) {
             if (key.startsWith(range)) {
                 this.cache.delete(key);
@@ -262,11 +304,7 @@ export class GoogleSheet {
         return 'https://www.googleapis.com/auth/spreadsheets'
     }
 
-    #printBanner(name = '') {
-        if (!name) {
-            name = this.getName();
-        }
-    
+    #printBanner(name = this.getName()) {
         if (!name) return;
         log.prompt('')
         log.prompt('───────────────────────────────────────')
@@ -282,14 +320,15 @@ export class GoogleSheet {
             [404, MESSAGES.SHEET.ERROR404],
             [500, MESSAGES.SHEET.ERROR500],
         ];
-        
         for (const [code, message] of errors) {
             if (error?.code === 500) {
+                log.error(message);
                 this.restart();
+                return;
             }
-
             if (error?.code === code) {
-                return log.error(message);
+                log.error(message);
+                return;
             }
         }
     }

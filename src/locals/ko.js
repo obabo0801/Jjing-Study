@@ -6,10 +6,11 @@ export const MESSAGES = {
     },
 
     CLI: {
+        ALL: '전체 🍀',
+
         GOOGLE: '구글 시트 📊',
         DISCORD: '디스코드 🎮',
 
-        BOTS: '[0] 전체',
         COMMAND: '명령어 📝\n',
 
         COMMANDS: {
@@ -18,15 +19,20 @@ export const MESSAGES = {
             STOP: '중지',
             STATUS: '상태',
             REFRESH: '새로고침',
-            EXIT: '종료',
-            CLEAR: '정리'
+            CLEAR: '정리',
+            EXIT: '종료'
         },
 
-        NAME:   'NAME     ',
-        GLOBAL: 'GLOBAL   ',
-        GUILD:  'GUILD    ',
-        PING:   'PING     ',
-        UPTIME: 'UPTIME   ',
+        NAME:   'NAME'.padEnd(10),
+        STATUS: 'STATUS'.padEnd(10),
+        GLOBAL: 'GLOBAL'.padEnd(10),
+        GUILD:  'GUILD'.padEnd(10),
+        PING:   'PING'.padEnd(10),
+        UPTIME: 'UPTIME'.padEnd(10),
+        GUILDS: 'GUILDS'.padEnd(10),
+        USERS:  'USERS'.padEnd(10),
+        SHEETS: 'SHEETS'.padEnd(10),
+        CACHE:  'CACHE'.padEnd(10),
     },
 
     LOGIN: {
@@ -56,6 +62,11 @@ export const MESSAGES = {
     
     STATUS: {
         ATTEMPT: '⏰ 상태를 확인합니다.',
+
+        SUCCESS: '⚡ 상태 조회 완료',
+        FAIL: '⚡ 상태 조회 실패',
+
+        NOT_RUNNING: '❗ 서버가 실행 중이 아닙니다.',
 
         CONNECTED: '🟢 연결됨',
         DISCONNECTED: '🔴 연결되지 않음',
@@ -108,6 +119,8 @@ export const MESSAGES = {
         ERROR403: '❌ 접근 권한이 없습니다. (403)',
         ERROR404: '❌ 요청한 데이터를 찾을 수 없습니다. (404)',
         ERROR500: '❌ 내부 서버 오류가 발생했습니다. (500)',
+
+        NOT_RUNNING: '❗ 시트가 실행 중이 아닙니다.',
     },
 
     ERROR: {

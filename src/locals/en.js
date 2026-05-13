@@ -5,10 +5,11 @@ export const MESSAGES = {
     },
 
     CLI: {
-        GOOGLE: 'Google Sheets 📊',
-        DISCORD: 'Discord 🎮',
+        ALL: 'All 🍀',
 
-        BOTS: '[0] All',
+        DISCORD: 'Discord 🎮',
+        GOOGLE: 'Google Sheets 📊',
+
         COMMAND: 'Commands 📝\n',
 
         COMMANDS: {
@@ -17,15 +18,20 @@ export const MESSAGES = {
             STOP: 'stop',
             STATUS: 'status',
             REFRESH: 'refresh',
-            EXIT: 'exit',
             CLEAR: 'clear',
+            EXIT: 'exit'
         },
 
-        NAME: 'NAME     ',
-        GLOBAL: 'GLOBAL   ',
-        GUILD: 'GUILD    ',
-        PING: 'PING     ',
-        UPTIME: 'UPTIME   ',
+        NAME:   'NAME'.padEnd(10),
+        STATUS: 'STATUS'.padEnd(10),
+        GLOBAL: 'GLOBAL'.padEnd(10),
+        GUILD:  'GUILD'.padEnd(10),
+        PING:   'PING'.padEnd(10),
+        UPTIME: 'UPTIME'.padEnd(10),
+        GUILDS: 'GUILDS'.padEnd(10),
+        USERS:  'USERS'.padEnd(10),
+        SHEETS: 'SHEETS'.padEnd(10),
+        CACHE:  'CACHE'.padEnd(10),
     },
 
     LOGIN: {
@@ -55,6 +61,11 @@ export const MESSAGES = {
 
     STATUS: {
         ATTEMPT: '⏰ Checking status...',
+
+        SUCCESS: '⚡ Status check success',
+        FAIL: '⚡ Status check failed',
+
+        NOT_RUNNING: '❗ Server not running',
 
         CONNECTED: '🟢 Connected',
         DISCONNECTED: '🔴 Disconnected',
@@ -107,6 +118,8 @@ export const MESSAGES = {
         ERROR403: '❌ Forbidden (403)',
         ERROR404: '❌ Data not found (404)',
         ERROR500: '❌ Server error (500)',
+
+        NOT_RUNNING: '❗ Sheet not running',
     },
 
     ERROR: {

@@ -3,6 +3,10 @@ import fs from 'fs';
 import { pathToFileURL } from 'url';
 
 export function get(name) {
+    if (path.isAbsolute(name)) {
+        return name;
+    }
+
     return join(process.cwd(), name);
 }
 
@@ -16,6 +20,12 @@ export function json(name) {
 
 export function join(...args) {
     return path.join(...args);
+}
+
+export function find(name) {
+    return dir('.').filter(f =>
+        path.basename(f) === name)
+        .map(get)[0] || null;
 }
 
 export function exists(name) {

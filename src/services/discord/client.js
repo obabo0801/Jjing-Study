@@ -6,6 +6,7 @@ import { MESSAGES } from '#i18n'
 import * as handler from '#handler';
 import * as file from '#file';
 import * as log from '#log';
+import { uptime } from '#time';
 
 export class DiscordBot extends Client {
 
@@ -23,11 +24,9 @@ export class DiscordBot extends Client {
         this.once('clientReady', async () => {
             await this.ready();
         });
-
         this.on('interactionCreate', (i) => {
             handler.interaction(this, i);
         });
-
         this.on('messageCreate', (m) => {
             handler.message(this, m);
         });
@@ -37,7 +36,6 @@ export class DiscordBot extends Client {
         const valid = Object.fromEntries(
             Object.entries(options)
             .filter(([_, v]) => v !== undefined));
-
         Object.assign(this.jjing, valid);
     }
 
@@ -47,35 +45,16 @@ export class DiscordBot extends Client {
             if (!path) {
                 path = this.getPath();
             }
-
-            js = file.dir(path)
-                .filter(file =>
+            js = file.dir(path).filter(file =>
                 file.endsWith('.js'));
         } catch (e) {
             log.error('❌', String(path),
                 MESSAGES.LOAD.NOT_FOUND);
             handler.error(e);
         }
-        
         log.info('⏰', String(path),
             MESSAGES.LOAD.ATTEMPT);
         await this.#read(js, path);
-    }
-
-    async reloadScripts(path = '') {
-        this.#printBanner();
-        this.deploy = true;
-
-        if (!this.isReady()) {
-            return log.warn(
-                MESSAGES.REFRESH.NOT_RUNNING);
-        }
-
-        handler.clear();
-        this.commands.clear();
-
-        await this.loadScripts(path);
-        await this.deployCommands();
     }
 
     async #read(files, path) {
@@ -84,11 +63,9 @@ export class DiscordBot extends Client {
                 const url = file.url(path, name);
                 const mod = await import(
                     `${url}?v=${Date.now()}`);
-
                 if (!mod.default) continue;
                 mod.default.events?.();
                 this.#register(mod.default);
-
                 log.load('📄', name,
                     MESSAGES.LOAD.SUCCESS);
             } catch (e) {
@@ -110,48 +87,40 @@ export class DiscordBot extends Client {
             if (!this.getClientId()) {
                 this.#undefinedClient();
             }
-
             if (!this.getGuildId()) {
                 this.#undefinedGuild();
             }
-
             const rest = new REST({ version: '10' })
                 .setToken(this.#getToken());
-            
-            this.deploy = false;
-
             log.info(MESSAGES.COMMAND.ATTEMPT);
-
             const body = [...this.commands.values()]
                 .map(cmd => cmd.toJSON());
-
             await rest.put(
                 Routes.applicationGuildCommands(
                     this.getClientId(),
-                    this.getGuildId()
-                ), { body }
+                    this.getGuildId()), { body }
             );
-            
             await rest.put(
                 Routes.applicationCommands(
-                    this.getClientId()
-                ), { body: [] }
+                    this.getClientId()), { body: [] }
             );
-
-            this.deploy = true;
-
             log.load(MESSAGES.COMMAND.SUCCESS);
+            await this.emit('command');
         } catch (e) {
-            this.deploy = true;
-
             log.error(MESSAGES.COMMAND.FAIL);
             handler.error(e);
+            this.emit('command');
         }
     }
 
     getName() {
         return process.env[this.jjing?.name]
             || this.jjing?.name;
+    }
+
+    getTag() {
+        return this.user.tag
+            || MESSAGES.STATUS.UNKNOWN;
     }
 
     getPath() {
@@ -192,9 +161,9 @@ export class DiscordBot extends Client {
     async getGlobal() {
         const res = await this.isGlobal();
         if (res) {
-            return '🟢';
+            return MESSAGES.STATUS.CONNECTED;
         } else {
-            return '🔴';
+            return MESSAGES.STATUS.DISCONNECTED;
         }
     }
 
@@ -202,17 +171,14 @@ export class DiscordBot extends Client {
         try {
             const rest = new REST({ version: '10' })
                 .setToken(this.#getToken());
-            
             if (!this.getClientId()) {
                 return false;
             }
-            
             const commands = await rest.get(
                 Routes.applicationCommands(
                     this.user.id
                 )
             );
-            
             return true;
         } catch {
             return false;
@@ -222,9 +188,9 @@ export class DiscordBot extends Client {
     async getGuild() {
         const res = await this.isGuild();
         if (res) {
-            return '🟢';
+            return MESSAGES.STATUS.CONNECTED;
         } else {
-            return '🔴';
+            return MESSAGES.STATUS.DISCONNECTED;
         }
     }
 
@@ -232,29 +198,26 @@ export class DiscordBot extends Client {
         try {
             const rest = new REST({ version: '10' })
                 .setToken(this.#getToken());
-            
             if (!this.getGuildId()) {
                 return false;
             }
-            
             const commands = await rest.get(
                 Routes.applicationGuildCommands(
                     this.user.id,
                     this.getGuildId()
                 )
             );
-            
             return true;
         } catch {
             return false;
         }
     }
 
-    isDeploy() { return this.deploy; }
-
-    infoStatus() {
-        return MESSAGES.STATUS[
-            this.user?.presence.status.toUpperCase()]
+    async infoStatus() {
+        const status = this.user?.presence?.status;
+        if (!status)
+            return MESSAGES.STATUS.INVISIBLE;
+        return MESSAGES.STATUS[status.toUpperCase()]
             || MESSAGES.STATUS.INVISIBLE;
     }
     
@@ -269,10 +232,8 @@ export class DiscordBot extends Client {
             if (!guildId) {
                 this.#undefinedGuild();
             }
-
             const guild = await this
                 .guilds.fetch(guildId);
-            
             log.load(
                 MESSAGES.GUILD.SUCCESS);
             log.info('🚪', guild.name);
@@ -285,72 +246,134 @@ export class DiscordBot extends Client {
 
     async ready() {
         this.#printBanner(this.getName());
-
         log.load(MESSAGES.LOGIN.SUCCESS);
         log.info('👤', this.user.tag);
-
         await this.#changeStatus(this.getStatus())
         await this.#printGuild(this.getGuildId());
         await this.loadScripts(this.getPath());
-
         await this.deployCommands();
+        await this.emit('start');
     }
 
     async start(retry = 0) {
         try {
             if (this.isReady()) {
                 this.#printBanner();
-                return log.warn(
-                    MESSAGES.LOGIN.RUNNING);
+                log.warn(MESSAGES.LOGIN.RUNNING);
+                this.emit('start');
+                return false;
             }
 
             if (!this.#getToken()) {
                 this.#undefinedToken();
             }
-
-            await this.login(
-                this.#getToken());
-                
-            this.deploy = false;
+            await this.login(this.#getToken());
+            return true;
         } catch (e) {
             this.#printBanner();
             this.#errorStart(e, retry)
+            this.emit('start');
+            return false;
         }
+    }
+
+    async restart() {
+        await this.stop(true);
+        await this.start();
     }
 
     async stop(skip = false) {
         try {
             if (skip) {
+                if (!this.isReady())
+                    this.emit('stop');
+                    return false;
                 this.commands.clear();
                 await this.destroy();
-                return;
+                await this.emit('stop');
+                return true;
             }
-
             this.#printBanner();
-            this.deploy = true;
-
             if (!this.isReady()) {
-                return log.warn(
-                    MESSAGES.LOGOUT.STOPPED);
+                log.warn(MESSAGES.LOGOUT.STOPPED);
+                this.emit('stop');
+                return false;
             }
-
             this.commands?.clear();
             await this.destroy();
-
-            log.load(
-                MESSAGES.LOGOUT.SUCCESS);
+            log.load(MESSAGES.LOGOUT.SUCCESS);
+            await this.emit('stop');
+            return true;
         } catch (e) {
-            log.error(
-                MESSAGES.LOGOUT.FAIL);
+            log.error(MESSAGES.LOGOUT.FAIL);
             handler.error(e);
+            this.emit('stop');
+            return false;
         }
     }
-    
-    #printBanner(name = '') {
-        if (!name) {
-            name = this.getName();
-        }
 
+    async status() {
+        try {
+            this.#printBanner();
+            if (!this.isReady()) {
+                log.warn(MESSAGES.STATUS.NOT_RUNNING);
+                this.emit('status');
+                return false;
+            }
+            log.prompt(MESSAGES.CLI.NAME,
+                await this.getTag());
+            log.prompt(MESSAGES.CLI.STATUS,
+                await this.infoStatus());
+            log.prompt(MESSAGES.CLI.GLOBAL,
+                await this.getGlobal());
+            log.prompt(MESSAGES.CLI.GUILD,
+                await this.getGuild());
+            log.prompt(MESSAGES.CLI.PING,
+                `${this.ws?.ping}ms`);
+            log.prompt(MESSAGES.CLI.UPTIME, 
+                uptime(await this.uptime));
+            log.prompt(MESSAGES.CLI.GUILDS,
+                this.guilds?.cache?.size);
+            log.prompt(MESSAGES.CLI.USERS,
+                this.guilds?.cache?.reduce(
+                (a, g) => a + g.memberCount,
+                0) || 0);
+            log.load(MESSAGES.STATUS.SUCCESS);
+            await this.emit('status');
+            return true;
+        } catch (e) {
+            log.error(MESSAGES.STATUS.FAIL);
+            handler.error(e);
+            this.emit('status');
+            return false;
+        }
+    }
+
+    async refresh() {
+        try {
+            this.#printBanner();
+            if (!this.isReady()) {
+                log.warn(MESSAGES.REFRESH.NOT_RUNNING);
+                this.emit('refresh');
+                return false;
+            }
+            this.commands.clear();
+            handler.clear();
+            await this.loadScripts();
+            await this.deployCommands();
+            log.load(MESSAGES.REFRESH.SUCCESS);
+            await this.emit('refresh');
+            return true;
+        } catch (e) {
+            log.error(MESSAGES.REFRESH.FAIL);
+            this.error(e);
+            this.emit('refresh');
+            return false;
+        }
+        
+    }
+    
+    #printBanner(name = this.getName()) {
         if (!name) return;
         log.prompt('')
         log.prompt('───────────────────────────────────────')
@@ -360,50 +383,34 @@ export class DiscordBot extends Client {
 
     #errorStart(error, retry) {
         return new Promise((resolve) => {
-        
-        this.deploy = false;
-
-        log.error(
-            MESSAGES.LOGIN.FAIL);
+        log.error(MESSAGES.LOGIN.FAIL);
         handler.error(error);
-
         if (!this.getCount() || !this.getDelay()) {
             return;
         }
-
         if (retry >= this.getCount()) {
-            this.deploy = true;
-            log.error(
-                MESSAGES.LOGIN.RETRY_LIMIT);
-            resolve(true);
+            log.error(MESSAGES.LOGIN.RETRY_LIMIT);
+            resolve();
             return;
         }
-
-        log.warn(
-            MESSAGES.LOGIN.RETRY_COUNT(
-                this.getDelay(), 
-                retry + 1,
-                this.getCount()));
-
+        log.warn(MESSAGES.LOGIN.RETRY_COUNT(
+            this.getDelay(), retry + 1,
+            this.getCount()));
         setTimeout(() => {
             this.start(retry + 1);
         }, this.getDelay() * 1000);
-
         });
     }
 
     #undefinedClient() {
-        throw new Error(
-            MESSAGES.COMMAND.CLIENT_UNDEFINED);
+        throw new Error(MESSAGES.COMMAND.CLIENT_UNDEFINED);
     }
 
     #undefinedGuild() {
-        throw new Error(
-            MESSAGES.GUILD.UNDEFINED);
+        throw new Error(MESSAGES.GUILD.UNDEFINED);
     }
 
     #undefinedToken() {
-        throw new Error(
-            MESSAGES.LOGIN.TOKEN_UNDEFINED);
+        throw new Error(MESSAGES.LOGIN.TOKEN_UNDEFINED);
     }
 }
