@@ -222,7 +222,7 @@ export class DiscordBot extends Client {
     async #changeStatus(status) {
         if (!status) return;
         this.user?.setPresence({status});
-        log.info(this.infoStatus());
+        log.info(await this.infoStatus());
     }
 
     async #printGuild(guildId) {
