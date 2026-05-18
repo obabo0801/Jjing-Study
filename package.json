@@ -1,27 +1,27 @@
 {
-    "name": "jjing-manager",
+    "name": "jjing-study",
     "version": "1.0.0",
-    "description": "Node.js CLI 멀티 서비스 관리 프로젝트",
-    "homepage": "https://github.com/obabo0801/Jjing-Manager#readme",
+    "description": "Node.js CLI",
+    "homepage": "https://github.com/obabo0801/Jjing-study#readme",
     "bugs": {
-        "url": "https://github.com/obabo0801/Jjing-Manager/issues"
+        "url": "https://github.com/obabo0801/Jjing-study/issues"
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/obabo0801/Jjing-Manager.git"
+        "url": "git+https://github.com/obabo0801/Jjing-study.git"
     },
     "license": "MIT",
     "author": "unjongjjing",
     "type": "module",
-    "main": "index.js",
+    "main": "src/index.js",
     "scripts": {
         "start": "node src/index.js"
     },
     "imports": {
-        "#services/*": "./src/services/*.js",
-        "#core/*": "./src/core/*.js",
-        "#utils/*": "./src/utils/*.js",
-        "#i18n": "./src/locals/index.js"
+        "#services/*": "src/services/*.js",
+        "#core/*": "src/core/*.js",
+        "#utils/*": "src/utils/*.js",
+        "#i18n": "src/locals/index.js"
     },
     "dependencies": {
         "discord.js": "^14.26.4",

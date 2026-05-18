@@ -1,5 +1,5 @@
 <h1 align="center">
-🐕 Jjing Manager
+🐕 Jjing Study
 </h1>
 
 <p align="center">
@@ -14,11 +14,11 @@ Node.js + discord.js + googleapis
 ---
 
 ## 📌 소개
-Jjing Manager는 Discord Bot과 Google Sheets를    
-CLI 기반으로 제어할 수 있는 멀티 서비스 관리 프로젝트입니다.    
+Jjing Study 는 Discord Bot과 Google Sheets를    
+CLI 으로 제어할 수 있는 개인 프로젝트입니다.    
 
-환경 변수와 Config 설정을 통해 여러 서비스를 관리할 수 있으며    
-다국어(i18n)도 지원합니다.    
+.env 환경 변수와 Config 설정을 통해 여러 서비스를    
+관리할 수 있으며 다국어(i18n)도 지원합니다.    
 
 ---
 
