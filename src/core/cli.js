@@ -19,7 +19,8 @@ const TITLE = `
 const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
-    prompt: ''});
+    prompt: ''}
+);
 
 export async function start(items) {
     services = items;
@@ -31,16 +32,16 @@ export async function start(items) {
     prompt();
 }
 
-export async function reload(items = service) {
+export async function reload(items = services) {
     services = items;
     loadConfig();
-    await callItems(service, 'reload');
+    await callItems(services, 'reload');
 }
 
-export async function setup(items = service) {
+export async function setup(items = services) {
     services = items;
     loadConfig();
-    await callItems(service, 'setup');
+    await callItems(services, 'setup');
 }
 
 export async function reboot() {
@@ -48,7 +49,8 @@ export async function reboot() {
         'npm start --silent', {
         detached: true,
         stdio: 'inherit',
-        shell: true});
+        shell: true}
+    );
     child.unref();
     await shutdown();
 }
@@ -117,7 +119,8 @@ function showHelp() {
     showLine();
     log.prompt(MESSAGES.CLI.COMMAND);
     log.prompt(log.strformat(MESSAGES.CLI.COMMANDS,
-        { first: '', last: '', join: ' | ', col: 5 }));
+        { first: '', last: '', join: ' | ', col: 5 })
+    );
     showLine();
 }
 
@@ -134,17 +137,17 @@ function name(item) {
 }
 
 function list(item) {
-    return item.ref?.get?.();
+    return item.ref?.all?.();
 }
 
 function hasAll(selected, all) {
     return !!all && selected.some(({ value }) =>
-        hasMethod(value, all));
+        hasMethod(value, all)
+    );
 }
 
 function hasMethod(item, method) {
-    return !!item && typeof item
-        .ref?.[method] === 'function';
+    return !!item && typeof item.ref?.[method] === 'function';
 }
 
 function hasList(item) {
@@ -157,21 +160,23 @@ function hasService() {
 }
 
 function indexInfo(item) {
-    return [...item.ref.get().keys()];
+    return [...item.ref?.all().keys()];
 }
 
 function indexMenu(items, single = null) {
     return items.map((value, key) =>
         ({ key, value })).filter(({ value }) =>
         value.ref && hasList(value)
-        && (!single || hasMethod(value, single)));
+        && (!single || hasMethod(value, single))
+    );
 }
 
 function validate(target, args) {
-    const keys = [...target.ref.get().keys()];
+    const keys = [...target.ref.all().keys()];
     return [...new Set(args)]
         .filter(arg => !Number.isNaN(arg))
-        .filter(arg => keys.includes(arg));
+        .filter(arg => keys.includes(arg)
+    );
 }
 
 async function question() {
@@ -413,7 +418,8 @@ async function handler(input) {
     case locales.ko.CLI.COMMANDS.READ: {
         await textCommand('list', 'read', rest, {
             attempt: MESSAGES.READ.ATTEMPT,
-            input: MESSAGES.READ.INPUT});
+            input: MESSAGES.READ.INPUT,
+        });
         break;
     }
 
@@ -421,7 +427,9 @@ async function handler(input) {
     case locales.ko.CLI.COMMANDS.WRITE: {
         await textCommand('list', 'write', rest, {
             attempt: MESSAGES.WRITE.ATTEMPT,
-            input: MESSAGES.WRITE.INPUT});
+            input: MESSAGES.WRITE.INPUT,
+            print: false,
+        });
         break;
     }
 
@@ -429,7 +437,9 @@ async function handler(input) {
     case locales.ko.CLI.COMMANDS.APPEND: {
         await textCommand('list', 'append', rest, {
             attempt: MESSAGES.APPEND.ATTEMPT,
-            input: MESSAGES.APPEND.INPUT});
+            input: MESSAGES.APPEND.INPUT,
+            print: false,
+        });
         break;
     }
 
@@ -508,7 +518,8 @@ function printRows(values) {
     for (const row of rows) {
         log.prompt(Array.isArray(row)
             ? row.join(' ')
-            : String(row));
+            : String(row)
+        );
     }
     return true;
 }
@@ -535,7 +546,8 @@ async function done() {
 
 export function unknown(cmd) {
     log.warn(`❓ '${cmd}' `
-        + MESSAGES.SYSTEM.UNKNOWN);
+        + MESSAGES.SYSTEM.UNKNOWN
+    );
 }
 
 export function prompt() {
@@ -567,10 +579,12 @@ rl.on('SIGINT', shutdown);
 
 process.on('uncaughtException', (err) => {
     log.error(err?.stack || err);
+    prompt();
 });
 
 process.on('unhandledRejection', (reason) => {
     log.error(reason?.stack || reason);
+    prompt();
 });
 
 process.on('SIGINT', shutdown);

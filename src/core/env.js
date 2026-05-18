@@ -1,10 +1,9 @@
 import { parse } from 'dotenv';
-import { setLanguage, MESSAGES } from '#i18n';
-import * as handler from '#services/handler';
+import { MESSAGES, setLanguage } from '#i18n';
 import { decode } from '#utils/base64';
+import * as config from '#utils/config';
 import * as file from '#utils/file';
 import * as log from '#utils/log';
-import * as config from '#utils/config';
 
 export function parseEnv(name, show = true) {
     try {
@@ -40,7 +39,6 @@ export function parseEnv(name, show = true) {
     } catch (e) {
         if (show) {
             log.error(MESSAGES.ENV.FAIL);
-            handler.error(e);
         }
     }
 }

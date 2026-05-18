@@ -7,6 +7,6 @@ from '#services/google/index';
 
 (async () => { config({ quiet: true });
     await cli.start([
-        { name: 'DISCORD', ref: discord },
-        { name: 'GOOGLE', ref: google }]);
+    { name: 'DISCORD', ref: discord },
+    { name: 'GOOGLE', ref: google }]);
 })();

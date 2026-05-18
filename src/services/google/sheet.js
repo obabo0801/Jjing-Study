@@ -142,7 +142,7 @@ export class GoogleSheet extends EventEmitter {
         } catch (e) {
             log.error(MESSAGES.REFRESH.FAIL);
             await this.#handleError(e, { show: false });
-            await this.emit('stop');
+            await this.emit('refresh');
             return false;
         }
     }
@@ -221,9 +221,6 @@ export class GoogleSheet extends EventEmitter {
 
     normalize(value) {
         return String(value ?? '').trim();
-
-        const name = this.resolveSheetName(name);
-        return `${this.escapeSheetName(sheetName)}!${value}`;
     }
 
     buildRange(range, row) {
@@ -244,13 +241,13 @@ export class GoogleSheet extends EventEmitter {
 
     async isReady() {
         try {
-            if (!this.sheets) return { ok: false };
+            if (!this.sheets) return { ok: false }
             const r = await this.sheets.spreadsheets.get({
                 spreadsheetId: this.getSheetId()
             });
-            return { ok: true, result: r };
+            return { ok: true, result: r }
         } catch (e) {
-            return { ok: false, error: e };
+            return { ok: false, error: e }
         }
     }
 
@@ -311,7 +308,7 @@ export class GoogleSheet extends EventEmitter {
         );
         return index === -1
             ? { result: null, row: null }
-            : { result, row: rows[index] };
+            : { result: index, row: rows[index] }
     }
 
     async append(range, ...values) {
@@ -325,7 +322,7 @@ export class GoogleSheet extends EventEmitter {
             });
             return true;
         } catch (e) {
-            await this.#handleError(e, { show: false });
+            await this.#handleError(e, { show: false })
             return false;
         }
     }

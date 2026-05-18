@@ -4,6 +4,12 @@ import * as config from '#utils/config';
 
 const bots = new Map();
 
+export function get(key) {
+    return all().get(key);
+}
+
+export const all = () => bots;
+
 export async function setup() {
     setting('discords');
     const ids = index();
@@ -16,8 +22,6 @@ export async function setup() {
         await start(id);
     }
 }
-
-export const get = () => bots;
 
 export function setting(name) {
     bots.clear();

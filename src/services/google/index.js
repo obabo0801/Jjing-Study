@@ -4,6 +4,12 @@ import * as config from '#utils/config';
 
 const sheets = new Map();
 
+export function get(key) {
+    return all().get(key);
+}
+
+export const all = () => sheets;
+
 export async function setup() {
     setting('googles');
     const ids = index();
@@ -16,8 +22,6 @@ export async function setup() {
         await start(id);
     }
 }
-
-export const get = () => sheets;
 
 export function setting(name) {
     sheets.clear();
@@ -197,5 +201,5 @@ function parseValues(text = '') {
     const value = rest.join(' ');
     if (!range || !value) return null;
     return { range, values: value.split(
-        '|').map(v => v.trim())};
+        '|').map(v => v.trim())}
 }
