@@ -1,0 +1,36 @@
+{
+    "discord-start": 0,
+    "google-start": 0,
+    "language": "en",
+    
+    "discords": {
+
+        "1": {
+            "name": "Jjing Bot 🐕",
+            "path": "src/commands",
+
+            "token": "JJING_TOKEN",
+            "status": "online",
+            
+            "clientId": "JJING_CLIENT_ID",
+            "guildId": "JJING_GUILD_ID"
+        }
+    },
+
+    "googles": {
+
+        "1": {
+            "name": "회사 정보 ⭐",
+            "email": "GOOGLE_PRIVATE_EMAIL",
+            "key": "GOOGLE_PRIVATE_KEY",
+            "sheetId": "GOOGLE_MAIN_ID"
+        },
+
+        "2": {
+            "name": "회사 공금 🏢",
+            "email": "GOOGLE_PRIVATE_EMAIL",
+            "key": "GOOGLE_PRIVATE_KEY",
+            "sheetId": "GOOGLE_FUND_ID"
+        }
+    }
+}
