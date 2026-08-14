@@ -44,7 +44,10 @@ export class GoogleSheet extends EventEmitter {
             const sheet = await this.isReady();
             if (!sheet.ok) {
                 log.error(MESSAGES.SHEET.IN_FAIL);
-                await this.#handleError(sheet.error);
+                this.clear();
+                await this.#handleError(sheet.error,
+                    { restart: false }
+                );
                 await this.emit('start');
                 return false;
             }
@@ -54,7 +57,10 @@ export class GoogleSheet extends EventEmitter {
             await this.emit('start');
             return true;
         } catch (e) {
-            await this.#handleError(e);
+            this.clear();
+            await this.#handleError(e,
+                { restart: false }
+            );
             await this.emit('start');
             return false;
         }
@@ -304,7 +310,7 @@ export class GoogleSheet extends EventEmitter {
                 valueInputOption: 'USER_ENTERED',
                 requestBody: { values: [values] }
             });
-            this.clear(range);
+            this.clearCache();
             return true;
         } catch (e) {
             await this.#handleError(e, { show: false });
@@ -340,6 +346,7 @@ export class GoogleSheet extends EventEmitter {
                 valueInputOption: 'USER_ENTERED',
                 requestBody: {values: [values]}
             });
+            this.clearCache();
             return true;
         } catch (e) {
             await this.#handleError(e, { show: false })
@@ -356,6 +363,7 @@ export class GoogleSheet extends EventEmitter {
                 valueInputOption: 'USER_ENTERED',
                 requestBody: {values: [values]}
             });
+            this.clearCache();
             return true;
         } catch (e) {
             await this.#handleError(e, { show: false });
@@ -363,19 +371,21 @@ export class GoogleSheet extends EventEmitter {
         }
     }
 
-    clear(range = null) {
-        if (!range) {
-            this.cache.clear();
-            this.auth = null;
-            this.sheets = null;
-            this.names = null;
-            return;
-        }
+    clearCache(range = null) {
+        if (!range) return this.cache.clear();
         for (const key of this.cache.keys()) {
             if (key.startsWith(range)) {
                 this.cache.delete(key);
             }
         }
+    }
+
+    clear(range = null) {
+        if (range) return this.clearCache(range);
+        this.clearCache();
+        this.auth = null;
+        this.sheets = null;
+        this.names = null;
     }
 
     #scopes() {

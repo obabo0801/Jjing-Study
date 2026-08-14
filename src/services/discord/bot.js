@@ -67,7 +67,9 @@ export class DiscordBot extends Client {
                     `${url}?v=${Date.now()}`
                 );
                 if (!mod.default) continue;
-                mod.default.events?.();
+                await handler.register(this,
+                    () => mod.default.events?.()
+                );
                 this.#register(mod.default);
                 log.load('📄',
                     name.replaceAll('\\', '/'),
@@ -292,6 +294,7 @@ export class DiscordBot extends Client {
 
     async stop(skip = false) {
         try {
+            handler.clear(this);
             if (skip) {
                 if (!this.isReady()) {
                     this.emit('stop');
@@ -375,7 +378,7 @@ export class DiscordBot extends Client {
                 return false;
             }
             this.commands.clear();
-            handler.clear();
+            handler.clear(this);
             await this.loadScripts();
             await this.deployCommands();
             log.load(MESSAGES.REFRESH.SUCCESS);

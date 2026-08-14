@@ -41,12 +41,25 @@ const COLORS = Object.freeze({
     RESET: '\x1b[0m'
 });
 
+function formatArgs(args) {
+    return args
+        .map(value => {
+            if (value instanceof Error) {
+                return value.stack
+                    || value.message
+                    || value.name;
+            }
+
+            return typeof value === 'object'
+                ? stringify(value)
+                : String(value);
+        })
+        .join(' ');
+}
+
 export function append(level, ...args) {
     const type = String(level);
-    const arg = args
-        .map(a => typeof a === 'object' 
-        ? stringify(a) : String(a))
-        .join(' ');
+    const arg = formatArgs(args);
 
     const data = 
         `[${time.getTime()}] [${type}] ${arg}`;
@@ -57,10 +70,7 @@ export function append(level, ...args) {
 
 export function send(level, ...args) {
     const type = String(level);
-    const arg = args
-        .map(a => typeof a === 'object' 
-        ? stringify(a) : String(a))
-        .join(' ');
+    const arg = formatArgs(args);
 
     const data = 
         `[${time.getTime()}] [${type}] ${arg}`;
@@ -75,10 +85,7 @@ export function send(level, ...args) {
 
 export function print(level, ...args) {
     const type = String(level);
-    const arg = args
-        .map(a => typeof a === 'object' 
-        ? stringify(a) : String(a))
-        .join(' ');
+    const arg = formatArgs(args);
 
     const l = CONSOLE[type] ?? console.log;
     const c = COLORS[type] ?? COLORS.RESET;
@@ -89,9 +96,15 @@ export function print(level, ...args) {
 }
 
 function stringify(data) {
-    return JSON.stringify(data, (_, v) =>
-        typeof v === 'bigint'
-         ? v.toString() : v);
+    try {
+        return JSON.stringify(data, (_, value) =>
+            typeof value === 'bigint'
+                ? value.toString()
+                : value
+        );
+    } catch {
+        return String(data);
+    }
 }
 
 export function strformat(commands, {

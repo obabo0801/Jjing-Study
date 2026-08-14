@@ -1,7 +1,9 @@
 import { MESSAGES } from '#i18n'
 import * as log from '#utils/log';
+import { AsyncLocalStorage } from 'async_hooks';
 
-const handlers = [];
+const handlers = new WeakMap();
+const scopes = new AsyncLocalStorage();
 
 const interactions = [
     ['chatInputCommand', i => i.isChatInputCommand()],
@@ -11,17 +13,17 @@ const interactions = [
     ['modalSubmit', i => i.isModalSubmit()],
 ];
 
-export function interaction(client, i) {
+export async function interaction(client, i) {
     try {
         for (const [event, check] of interactions) {
-            if (check(i)) return emit(event, i);
+            if (check(i)) return await emit(client, event, i);
         }
     } catch (e) {
         error(e);
     }
 }
 
-export function message(client, m) {
+export async function message(client, m) {
     try {
         if (!m.content.startsWith('!')) {
             return;
@@ -34,24 +36,36 @@ export function message(client, m) {
             .shift()
             ?.toLowerCase();
 
-        emit('message', name, m.content);
+        await emit(client, 'message', name, m.content, m);
     } catch (e) {
         error(e);
     }
 }
 
-export function on(name, callback) {
-    handlers.push([name, callback]);
+export function register(client, callback) {
+    return scopes.run(client, callback);
 }
 
-export function emit(name, ...args) {
-    for (const [e, c] of handlers) {
-        if (e === name) c(...args);
+export function on(name, callback) {
+    const client = scopes.getStore();
+    if (!client) {
+        throw new Error('Event handlers must be registered by a client.');
+    }
+    const events = handlers.get(client) ?? [];
+    events.push([name, callback]);
+    handlers.set(client, events);
+}
+
+export async function emit(client, name, ...args) {
+    for (const [event, callback] of handlers.get(client) ?? []) {
+        if (event === name) {
+            await callback(...args);
+        }
     }
 }
 
-export function clear() {
-    handlers.length = 0;
+export function clear(client) {
+    if (client) handlers.delete(client);
 }
 
 export function error(error) {
